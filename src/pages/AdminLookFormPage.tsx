@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Save, UploadCloud, X } from 'lucide-react'
+import { Save, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -117,6 +117,14 @@ export function AdminLookFormPage() {
   const galleryInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
 
+  const requireSupabaseClient = () => {
+    if (!supabase) {
+      throw new Error('Supabase is not configured. Add your VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY values.')
+    }
+
+    return supabase
+  }
+
   const form = useForm<LookFormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
@@ -190,17 +198,6 @@ export function AdminLookFormPage() {
     }
   }
 
-  const addShoppingLink = () => {
-    const current = watch('shopping_links') ?? []
-    setValue('shopping_links', [...current, { retailer_name: '', affiliate_url: '', button_label: '', displayed_price: '', display_order: current.length + 1, is_active: true }], { shouldValidate: false })
-  }
-
-  const removeShoppingLink = (index: number) => {
-    const current = [...(watch('shopping_links') ?? [])]
-    current.splice(index, 1)
-    setValue('shopping_links', current, { shouldValidate: false })
-  }
-
   const handleMainImageSelect = (fileList: FileList | null) => {
     const nextFile = fileList?.[0]
     if (!nextFile || !nextFile.type.startsWith('image/')) {
@@ -244,11 +241,12 @@ export function AdminLookFormPage() {
   }
 
   const uploadFile = async (file: File, path: string) => {
+    const client = requireSupabaseClient()
     const bucketName = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? 'fashion-media'
     const safeFileName = createSafeStorageFileName(file.name)
     const fileName = `${Date.now()}-${safeFileName}`
     const uploadPath = `${path}/${fileName}`
-    const { error } = await supabase.storage.from(bucketName).upload(uploadPath, file, {
+    const { error } = await client.storage.from(bucketName).upload(uploadPath, file, {
       cacheControl: '3600',
       upsert: true,
     })
@@ -267,6 +265,7 @@ export function AdminLookFormPage() {
   const saveGalleryMedia = async (lookId: string, files: File[]) => {
     if (!lookId || !files.length) return
 
+    const client = requireSupabaseClient()
     const rows = await Promise.all(
       files.map(async (file, index) => {
         const uploadPath = await uploadFile(file, `looks/${lookId}/gallery`)
@@ -281,7 +280,7 @@ export function AdminLookFormPage() {
       }),
     )
 
-    const { data, error } = await supabase.from('look_media').insert(rows).select()
+    const { data, error } = await client.from('look_media').insert(rows).select()
     if (error) throw error
     if (!data?.length) {
       throw new Error('Gallery images were uploaded but no media rows were created. Check the Supabase admin policies and the look_media table.')
@@ -293,7 +292,8 @@ export function AdminLookFormPage() {
 
     const uploadPath = await uploadFile(file, `looks/${lookId}/videos`)
 
-    const { data, error: mediaError } = await supabase.from('look_media').insert({
+    const client = requireSupabaseClient()
+    const { data, error: mediaError } = await client.from('look_media').insert({
       look_id: lookId,
       storage_path: uploadPath,
       media_type: 'video',
@@ -339,6 +339,7 @@ export function AdminLookFormPage() {
         is_featured: values.is_featured,
       }
 
+      const client = requireSupabaseClient()
       const savedLook = await saveLook(payload, existingLookId ?? undefined)
       const lookId = existingLookId ?? savedLook.id
       setExistingLookId(lookId)
@@ -347,7 +348,7 @@ export function AdminLookFormPage() {
         const mainImagePath = await uploadFile(mainImageFile, `looks/${lookId}/images`)
         payload.main_image_path = mainImagePath
 
-        const { error: mainImageUpdateError } = await supabase
+        const { error: mainImageUpdateError } = await client
           .from('looks')
           .update({ main_image_path: mainImagePath })
           .eq('id', lookId)
@@ -363,7 +364,7 @@ export function AdminLookFormPage() {
         const uploadedVideoPath = await saveVideoMedia(lookId, videoFile)
         payload.video_path = uploadedVideoPath ?? null
 
-        const { error: videoUpdateError } = await supabase
+        const { error: videoUpdateError } = await client
           .from('looks')
           .update({ video_path: payload.video_path })
           .eq('id', lookId)
@@ -390,7 +391,7 @@ export function AdminLookFormPage() {
           })
 
         if (links.length) {
-          const { error } = await supabase.from('shopping_links').upsert(links, { onConflict: 'id' })
+          const { error } = await client.from('shopping_links').upsert(links, { onConflict: 'id' })
           if (error) throw error
         }
       }

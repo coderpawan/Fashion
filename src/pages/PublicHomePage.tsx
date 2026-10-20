@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronLeft, ChevronRight, Search, Sparkles, X, ZoomIn } from 'lucide-react'
+import { ArrowRight, ChevronLeft, ChevronRight, Sparkles, X, ZoomIn } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { LookCard } from '../components/LookCard'
 import { getCategories, getPublishedLooks, getSiteSettings } from '../lib/data'

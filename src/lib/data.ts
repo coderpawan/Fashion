@@ -93,9 +93,10 @@ export const auth = {
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings | null> => {
-  if (!isSupabaseConfigured || !supabase) return null
+  if (!isSupabaseConfigured) return null
 
-  const { data, error } = await supabase
+  const client = requireSupabase()
+  const { data, error } = await client
     .from('site_settings')
     .select('*')
     .limit(1)
@@ -108,7 +109,8 @@ export const getSiteSettings = async (): Promise<SiteSettings | null> => {
 export const getCategories = async (): Promise<Category[]> => {
   if (!isSupabaseConfigured) return []
 
-  const { data, error } = await supabase
+  const client = requireSupabase()
+  const { data, error } = await client
     .from('categories')
     .select('*')
     .eq('is_active', true)
@@ -139,7 +141,8 @@ export const getPublishedLooks = async ({
 } = {}) => {
   if (!isSupabaseConfigured) return { data: [], count: 0 }
 
-  let query = supabase
+  const client = requireSupabase()
+  let query = client
     .from('looks')
     .select('*, category:categories(*), shopping_links(*), look_media(*)', { count: 'exact' })
     .eq('status', 'published')
@@ -174,7 +177,8 @@ export const getPublishedLooks = async ({
 export const getFeaturedLook = async (): Promise<Look | null> => {
   if (!isSupabaseConfigured) return null
 
-  const { data, error } = await supabase
+  const client = requireSupabase()
+  const { data, error } = await client
     .from('looks')
     .select('*, category:categories(*), shopping_links(*), look_media(*)')
     .eq('status', 'published')
@@ -191,7 +195,8 @@ export const getFeaturedLook = async (): Promise<Look | null> => {
 export const getLookBySlug = async (slug: string): Promise<Look | null> => {
   if (!isSupabaseConfigured) return null
 
-  const { data, error } = await supabase
+  const client = requireSupabase()
+  const { data, error } = await client
     .from('looks')
     .select('*, category:categories(*), shopping_links(*), look_media(*)')
     .eq('slug', slug)
@@ -205,7 +210,8 @@ export const getLookBySlug = async (slug: string): Promise<Look | null> => {
 export const getLookById = async (id: string): Promise<Look | null> => {
   if (!isSupabaseConfigured) return null
 
-  const { data, error } = await supabase
+  const client = requireSupabase()
+  const { data, error } = await client
     .from('looks')
     .select('*, category:categories(*), shopping_links(*), look_media(*)')
     .eq('id', id)
@@ -216,11 +222,12 @@ export const getLookById = async (id: string): Promise<Look | null> => {
 }
 
 export const getAdminDashboardSummary = async (): Promise<DashboardSummary> => {
-  if (!isSupabaseConfigured || !supabase) return { totalLooks: 0, publishedLooks: 0, draftLooks: 0, scheduledLooks: 0, totalShoppingLinks: 0 }
+  if (!isSupabaseConfigured) return { totalLooks: 0, publishedLooks: 0, draftLooks: 0, scheduledLooks: 0, totalShoppingLinks: 0 }
 
+  const client = requireSupabase()
   const [{ data: looksData, error: looksError }, { data: linkData, error: linkError }] = await Promise.all([
-    supabase.from('looks').select('status'),
-    supabase.from('shopping_links').select('id'),
+    client.from('looks').select('status'),
+    client.from('shopping_links').select('id'),
   ])
 
   if (looksError) throw looksError
@@ -239,7 +246,8 @@ export const getAdminDashboardSummary = async (): Promise<DashboardSummary> => {
 export const getAdminLooks = async () => {
   if (!isSupabaseConfigured) return []
 
-  const { data, error } = await supabase
+  const client = requireSupabase()
+  const { data, error } = await client
     .from('looks')
     .select('*, category:categories(*), shopping_links(*), look_media(*)')
     .order('created_at', { ascending: false })
