@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { Toaster } from 'sonner'
+import { Analytics } from '@vercel/analytics/react'
 import { Layout } from './components/Layout'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
@@ -15,6 +16,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster richColors position="top-right" />
+      <Analytics />
       <Routes>
         <Route path="/" element={<Layout><PublicHomePage /></Layout>} />
         <Route path="/looks" element={<Layout><LooksPage /></Layout>} />
